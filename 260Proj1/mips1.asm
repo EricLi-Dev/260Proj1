@@ -186,7 +186,7 @@ sub $t1, $t1, 1			# t1 <- t1 - 1 (subtract count of total number of pizels)
 bne $t1, $zero, HBoxRightYellow	# t1 (w/2) != 0, keep looping
 addi $t5, $t5, 1 		# add to height count
 bne $t5, $s1, HBoxRightHtCond	# when height counter isnt equal to height go to RCondition
-beq $t5, $s1, Exit		# move on to PreCOndDL
+beq $t5, $s1, PreCondTriL	# move on to PreCOndDL
 HBoxRightHtCond:
 la $t0, frameBuffer		# t0 <- frameBuffer
 sub $t6, $t6, 2048		# move a pixel up and store in t6
@@ -194,6 +194,32 @@ add $t0, $t0, $t6		# add new index to frameBuffer
 sub $t1, $s3, 0 		# t1 <- s3 (w/2)
 j HBoxRightYellow		# jump back up to RBlue
 
+#Left Triangle
+PreCondTriL:
+la $t0, frameBuffer		# t0 <- frameBuffer
+sub $t1, $s3, 24		# t1 <- s3 (w/2) - 24
+li $t5, 0 			# t5 <- 0 (Counter for height)
+add $t7, $zero, 523260		# t6 <- right bottommost center pixel
+add $t6, $s1, $s2		# t6 = height 
+sll $t6, $t6, 11		# t6 * 2048
+sub $t6, $t7, $t6		# t6 <- t7 - t6
+add $t0, $t0, $t6		# frameBuffer index set to t6
+li $t7, 0			# t7 = 0
+TriLBlue:
+sw $t4,($t0) 			# current pixel is brown (Mem[t0] <- t4) center left
+sub $t0, $t0, 4 		# t0 <- t0 - 4 (move to next left pixel)
+sub $t1, $t1, 1 		# t1 <- t1 - 1 (subtract count of total number of pizels)
+bne $t1, $t7, TriLBlue          # if t1 != t7, go to LBlue2
+addi $t5, $t5, 1 		# add to height count
+bne $t5, $s3, TriLCondition	# when height counter isnt equal to height go to LCondition
+beq $t5, $s3, Exit		# height count squals triangle height, go to PreCondTriL
+TriLCondition:
+la $t0, frameBuffer		# t0 <- frameBuffer
+sub $t6, $t6, 2048		# move a pixel up
+add $t0, $t0, $t6		# add new index to frameBuffer
+sub $t1, $s3, 0 		# t1 <- s3 (w/2)
+addi $t7, $t7, 1		# t7 = t7 + 1 
+j TriLBlue
 
 Exit:
 li $v0,10 			# exit code
