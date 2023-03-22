@@ -1,226 +1,249 @@
 .data
 # DONOTMODIFYTHISLINE
-frameBuffer: .space 0x80000 	# 512 wide X 256 high pixels
-w: .word 100 			# width of flask is 100
-h: .word 40 			# height is 70
-l: .word 40 			# L is 80
-chr: .word 0x00 		# red color component of house
-chg: .word 0x00 		# blue color component of house
-chb: .word 0xFF 		# green color component of house
-cdr: .word 0x96 		# red color component of house
-cdg: .word 0x4B 		# blue color component of house
-cdb: .word 0x00 		# green color component of house
-bgcol: .word 0x00406080
-testcol: .word  0x00FFFF00 	#test color for pixels
-
+frameBuffer: .space 0x80000 # 512 wide X 256 high pixels
+w: .word 80
+h: .word 32  
+l: .word 80
+bgcol: .word 0x00E2CD9F
+testcol: .word  0x00FFFF00 	#test color for pixels (yellow)
 # DONOTMODIFYTHISLINE
+# Your variables go BELOW here only (and above .text
+blue: 	.word 0x000000FF
+width: 	.word 512
+height: .word 256
+
 .text
-# load w, h, d
-lw $s0, w 			# s0 <- w
-lw $s1, l 			# s1 <- l
-lw $s2, h			# s2 <- h
-srl $s3, $s0, 1 		# s3 = s0 / 2 (THIS IS W/2, HEIGHT FOR TRIANGLE)
-srl $s4, $s1, 1 		# s4 = s1 / 2 (THIS IS H/2, HEIGHT FOR DOOR)
-lw $s5, bgcol			# s5 <- background_color
-lw $s6, testcol
-la $t0, frameBuffer 		# t0 <- frameBuffer
-li $t1, 0x20000 		# t1 <- total number of pixels (512*256)
+la $t0, frameBuffer             # loads address of frameBuffer
+li $t1, 0x20000 		# t1 <- total number of pixels (512*256)	
+lw $s0, bgcol                   # t1 <- background color 
+lw $s1, w
+lw $s2, h
+lw $s3, l
 
-###-------BACKGROUND-------
-fillBG:
-sw $s5, 0($t0) 			# current pixel is yellow (Mem[t0] <- t2)
-addi $t0, $t0, 4 		# t0 <- t0 + 4 (move to next pixel)
-addi $t1, $t1, -1 		# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $zero, fillBG		# keep drawing each line for background
+drawBackground:	
+sw $s0, 0($t0)			# current pixel is yellow (Mem[t0] <- t2)
+addi $t0, $t0, 4		# t0 <- t0 + 4 (move to next pixel)
+addi $t1, $t1, -1               # t1 <- t1 - 1
+bne $t1, $zero, drawBackground  # if t5 != t2, drawBackground else continue
 
-###------CHECK FOR INVALID CONDITIONS------
-blt $s0, $s2, Exit 		# if s0 (w) is less than s2 (d), go to Exit
-#Check if width and heigth and door are odd
-andi $t0, $s0, 1 		# see if rightmost bit of w is 0 or 1
-bne $t0, $zero, Exit 		# if t0 (w) is odd, go to Exit
-andi $t0, $s1, 1		# see if rightmost bit of h is 0 or 1
-bne $t0, $zero, Exit 		# if t0 (h) is odd, go to Exit
-andi $t0, $s2, 1		# see if rightmost bit of d is 0 or 1
-bne $t0, $zero, Exit 		# if t0 (d) is odd, go to Exit
-#Check if width and height are positive and in bounds
-blt $s0, $zero, Exit 		# s0 < 0, go to Exit
-blt $s1, $zero, Exit 		# s1 < 0, go to Exit
-blt $s2, $zero, Exit 		# s2 < 0, go to Exit
-li $t2, 512 			# t2 <- 512
-blt $t2, $s0, Exit  		# t2 < s0, go to Exit (512 < w)
-add $t1, $s1, $s3 		# t1 = s1 + s3 (h + w/2)
-li $t2, 256 			# t2 <- 256
-blt $t2, $t1, Exit		# t2 < t1, go to Exit
-# Check if rgb values greater than 255 or less than 0
-li $t3, 256			# t3 <- 256
-##Color ch
-#chr
-lw $t4, chr			# t4 <- chr
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-#chg
-lw $t4, chg			# t4 <- chg
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-#chb
-lw $t4, chb			# t4 <- chb
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-##Color cd
-#cdr
-lw $t4, cdr			# t4 <- cdr
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-lw $t4, cdg			# t4 <- cdg
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-lw $t4, cdb			# t4 <- cdb
-blt $t4, 0, Exit		# t4 < 0, go to Exit
-blt $t3, $t4, Exit		# t3 < t4, go to Exit
-##Build colors
-#Color ch
-lw $t3, chr 			# t3 <- chr
-sll $t3, $t3, 8 		# shift t4 8 bits left
-lw $t4, chg 			# t4 <- chg
-add $t3, $t3, $t4               # t4 = t4 + t3
-sll $t3, $t3, 8 		# shift t3 8 bits left
-lw $t4, chb			# t4 <- cgb
-add $t3, $t3, $t4 		# t3 = t3 + t4 (t3 stores color of ch)
-#Color cd
-lw $t4, cdr 			# t4 <- cdr
-sll $t4, $t4, 8 		# shift t4 8 bits left
-lw $t5, cdg 			# t5 <- cdg
-add $t4, $t4, $t5               # t4 = t4 + t5
-sll $t4, $t4, 8 		# shift t4 8 bits left
-lw $t5, cdb			# t5 <- cdb
-add $t4, $t4, $t5 		# t4 = t4 + t5 (t4 stores color of cd)
+#############################
+### CHECK CONDITIONS HERE ###
+#############################
 
-###Drawing Shapes
-#t3 is color for L part of flask (BLUE)
-#t4 is color for door, triangle (BROWN)
-#LEFT BODY OF FLASK --> L
-PreCondLBoxLeft:
-la $t0, frameBuffer 		# t0 <- frameBuffer
-sub $t1, $s3, 0			# t1 <- s3   (w/2)
-li $t5, 0 			# t5 <- 0 (Counter for height)
-add $t6, $zero, 523260		# t6 <- left bottommost center pixel
-add $t0, $t0, $t6		# index of t0 is 523260
-LBoxLeftBlue:				
-sw $t3,($t0) 			# current pixel is blue (Mem[] <- t3) center left
-sub $t0, $t0, 4 		# t0 <- t0 - 4 (move to next left pixel)
-sub $t1, $t1, 1 		# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $zero, LBoxLeftBlue 	# go to LBlue if t1 != 0
-addi $t5, $t5, 1 		# add to height count 
-bne $t5, $s1, LBoxLeftHtCond	# when height counter isnt equal to height go to LCondition
-beq $t5, $s1, PreCondLBoxRight	# move on to next function if t5 = s1
-LBoxLeftHtCond:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t6, $t6, 2048		# move a pixel up and store in t6
-add $t0, $t0, $t6		# add new index to frameBuffer
-sub $t1, $s3, 0 		# t1 <- s3 (w/2)
-j LBoxLeftBlue                  # jump back up to LBlue
+##Check if width is odd##
+andi $t1, $s1, 1		#check if rightmost bit of w is 0 or 1
+bne $t1, $zero, Exit		#if t1 is odd, go to Exit
 
-#RIGHT BODY OF FLASK --> L
-PreCondLBoxRight:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t1, $s3, 0			# t1 <- s3 (w/2)
-li $t5, 0 			# t5 <- 0 (Counter for height)
-add $t6, $zero, 523264		# t6 <- right bottommost center pixel
-add $t0, $t0, $t6		# frameBuffer index set to t6
-LBoxRightBlue:
-sw $t3,($t0)			# current pixel is blue (Mem[] <- t3) center left
-add $t0, $t0, 4			# t0 <- t0 + 4 (move to next right pixel)
-sub $t1, $t1, 1			# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $zero, LBoxRightBlue	# t1 (w/2) != 0, keep looping
-addi $t5, $t5, 1 		# add to height count
-bne $t5, $s1, LBoxRightHtCond	# when height counter isnt equal to height go to RCondition
-beq $t5, $s1, PreCondHBoxLeft	# move on to PreCOndDL
-LBoxRightHtCond:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t6, $t6, 2048		# move a pixel up and store in t6
-add $t0, $t0, $t6		# add new index to frameBuffer
-sub $t1, $s3, 0 		# t1 <- s3 (w/2)
-j LBoxRightBlue			# jump back up to RBlue
+##Check if l and h have uneven parity##
+andi $t1, $s2, 1		#check if rightmost bit of h is 1
+andi $t2, $s3, 1		#check if rightmost bit of l is 1
+bne $t1, $t2, Exit		#if l-parity != h-parity, go to Exit
 
-#LEFT BODY OF FLASK --> H
-PreCondHBoxLeft:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t1, $s3, 0			# t1 <- s3 (w/2)
-li $t5, 0 			# t5 <- 0 (Counter for height)
-add $t7, $zero, 523260		# t7 <- left bottommost center pixel
-add $t6, $s1, 0			# t6 = height of box L
-sll $t6, $t6, 11		# t6 * 2048
-sub $t6, $t7, $t6		# t6 <- t7 - t6
-add $t0, $t0, $t6		# frameBuffer index set to t6
-li $t7, 0			# t7 = 0
-HBoxLeftYellow:
-sw $s6,($t0)			# current pixel is yellow (Mem[] <- t3) center left
-sub $t0, $t0, 4			# t0 <- t0 + 4 (move to next right pixel)
-sub $t1, $t1, 1			# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $zero, HBoxLeftYellow	# t1 (w/2) != 0, keep looping
-addi $t5, $t5, 1 		# add to height count
-bne $t5, $s1, HBoxLeftHtCond	# when height counter isnt equal to height go to RCondition
-beq $t5, $s1, PreCondHBoxRight	# move on to PreCOndDL
-HBoxLeftHtCond:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t6, $t6, 2048		# move a pixel up and store in t6
-add $t0, $t0, $t6		# add new index to frameBuffer
-sub $t1, $s3, 0 		# t1 <- s3 (w/2)
-j HBoxLeftYellow		# jump back up to RBlue
+##Check if w < 60##
+li $t1, 60			#t1 <- 60 (minimum flask width)
+ble $s1, $t1, Exit 		#if w < 60, go to Exit
 
-#RIGHT BODY OF FLASK --> H
-PreCondHBoxRight:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t1, $s3, 0			# t1 <- s3 (w/2)
-li $t5, 0 			# t5 <- 0 (Counter for height)
-add $t7, $zero, 523264		# t7 <- right bottommost center pixel
-add $t6, $s1, 0			# t6 = height of box L
-sll $t6, $t6, 11		# t6 * 2048
-sub $t6, $t7, $t6		# t6 <- t7 - t6
-add $t0, $t0, $t6		# frameBuffer index set to t6
-li $t7, 0			# t7 = 0
-HBoxRightYellow:
-sw $s6,($t0)			# current pixel is yellow (Mem[] <- t3) center left
-add $t0, $t0, 4			# t0 <- t0 + 4 (move to next right pixel)
-sub $t1, $t1, 1			# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $zero, HBoxRightYellow	# t1 (w/2) != 0, keep looping
-addi $t5, $t5, 1 		# add to height count
-bne $t5, $s1, HBoxRightHtCond	# when height counter isnt equal to height go to RCondition
-beq $t5, $s1, PreCondTriL	# move on to PreCOndDL
-HBoxRightHtCond:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t6, $t6, 2048		# move a pixel up and store in t6
-add $t0, $t0, $t6		# add new index to frameBuffer
-sub $t1, $s3, 0 		# t1 <- s3 (w/2)
-j HBoxRightYellow		# jump back up to RBlue
+##Check if vars exceed max height of frame##
+##64 + h + l + (w-48) / 2 <= 256##
+li $t1, 64            		#t1 <- 64 (height of cap and neck)
+add $t1, $t1, $s2        	#t1 <- 64 + h
+add $t1, $t1, $s3        	#t1 <- 64 + h + l
+addi $t2, $s1, -48       	#t2 <- w - 48 (height of the triangle)
+srl $t2, $t2, 1			#t2 <- t2 / 2
+add $t1, $t1, $t2       	#t1 <- 64 + h + l + ((w-48) / 2)
+li $t2, 256           		#t2 <- 256 (max height of frame)
+blt $t2, $t1, Exit        	#if t2 < t1, go to Exit
 
-#Left Triangle
-PreCondTriL:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t1, $s3, 24		# t1 <- s3 (w/2) - 24
-li $t5, 0 			# t5 <- 0 (Counter for height)
-add $t7, $zero, 523260		# t6 <- right bottommost center pixel
-add $t6, $s1, $s2		# t6 = height 
-sll $t6, $t6, 11		# t6 * 2048
-sub $t6, $t7, $t6		# t6 <- t7 - t6
-add $t0, $t0, $t6		# frameBuffer index set to t6
-li $t7, 0			# t7 = 0
-TriLBlue:
-sw $t4,($t0) 			# current pixel is brown (Mem[t0] <- t4) center left
-sub $t0, $t0, 4 		# t0 <- t0 - 4 (move to next left pixel)
-sub $t1, $t1, 1 		# t1 <- t1 - 1 (subtract count of total number of pizels)
-bne $t1, $t7, TriLBlue          # if t1 != t7, go to LBlue2
-addi $t5, $t5, 1 		# add to height count
-bne $t5, $s3, TriLCondition	# when height counter isnt equal to height go to LCondition
-beq $t5, $s3, Exit		# height count squals triangle height, go to PreCondTriL
-TriLCondition:
-la $t0, frameBuffer		# t0 <- frameBuffer
-sub $t6, $t6, 2048		# move a pixel up
-add $t0, $t0, $t6		# add new index to frameBuffer
-sub $t1, $s3, 0 		# t1 <- s3 (w/2)
-addi $t7, $t7, 1		# t7 = t7 + 1 
-j TriLBlue
+##Check if width and heigth are positive##
+ble $s1, $zero, Exit 		#w <= 0, go to Exit
+ble $s2, $zero, Exit 		#h <= 0, go to Exit
+ble $s3, $zero, Exit		#l <= 0, go to Exit
 
+##Check if width < 256 and height < 512##
+li $t1, 512			#t1 <- 512 (max width of frame)
+blt $t1, $s1, Exit		#t1 < w, go to Exit
+li $t1, 256 			#t2 <- 256 (max height of the frame)
+blt $t1, $s2, Exit		#t1 < h, go to Exit
+blt $t1, $s3, Exit		#t1 < l, go to Exit
+
+li $t7, 0		# t7 <- 0 (counter for height)
+addi $t7, $t7, 16	# t7 <- t7 + 16
+
+drawCap:	la $t0, frameBuffer 	        # t0 <- address of frameBuffer 
+            	lw $t1, blue 		        # t1 <- blue 
+            
+            	#--Calculating Offset--
+            	# half width - 30 is the start of the drawing of cap	
+            	lw $t2, width			# t2 <- frame width 
+            	sll $t2, $t2, 1			# t2 <- (t2 / 2) * 4  # width / 2 * 4 word
+            	addi $t3, $zero, 30		# t3 <- 30 width of cap
+            	sll $t3, $t3, 2			# t3 <- 30 * 4 (offset)
+            	sub $t2, $t2, $t3		# t2 <- width/2 - offset [FRAME OFFSET]
+            	#--Start Drawing--
+            	add $t0, $t0, $t2		# t0 <- frameBuffer[0 + [FRAME OFFSET]]
+            	li $t5, 0			# t5 <- 0 (row) 
+
+drawCapOuter:	li $t6, 0		    	# t6 <- 0 (col)
+drawCapInner:	sw $t1, 32768($t0)		# t0 <- store color blue | (16 * 512) lines down * 4 per word
+		addi $t0, $t0, 4	        # move offset 1 pixel right
+		addi $t6, $t6, 1	        # t0 <- t0 + 1  | counter for moving right 1 col
+		bne $t6, 60, drawCapInner   	# if t5 != 60 repeat drawCapInner else move on
+		addi $t0, $t0, 1808		# (512 * 4) brings to next line shift - backwards (60 * 4) for beginning
+		addi $t5, $t5, 1	        # t5 <- t5 + 1 | counter for moving down 1 row
+		addi $t7, $t7, 1		# t7 <- t7 + 1 (height counter)
+		bne $t5, 32, drawCapOuter   	# if t6 != 32 (height) repeat drawCapOuter else move on
+		
+drawBotNeck: 	la $t0, frameBuffer		# t0 <- address of frameBuffer
+
+		# color calculation bgcol / 2 
+		lw $t1, bgcol			# t2 <- bgcol
+		srl $t1, $t1, 1			# t2 <- bgcol / 2
+		
+		#--Calculating Offset--
+		# calculate next line of starting pixel 
+		# half (width / 2) - 24 (where the neck width is 48)
+		# then add on position below cap 
+		lw $t2, width			# t2 <- width 
+            	sll $t2, $t2, 1			# t2 <- (t2 / 2) * 4  # width / 2 * 4 word
+            	addi $t3, $zero, 24		# t3 <- 24 width of neck
+            	sll $t3, $t3, 2			# t3 <- 24 * 4 (offset)
+            	sub $t2, $t2, $t3		# t2 <- width/2 - offset [FRAME OFFSET]
+            	
+            	#--Start Drawing-
+            	add $t0, $t0, $t2		# t0 <- frameBuffer[0 + [FRAME OFFSET]]
+            	add $t3, $zero, $t7		# t3 <- height counter
+            	sll $t3, $t3, 9			# t3 <- height counter * 512 -> height offset
+            	sll $t3, $t3, 2			# t3 <- height offset * 4 (word)
+            	add $t0, $t0, $t3		# t0 <- frameBuffer[0 + offset + height offset]
+            	li $t5, 0			# t5 <- 0 (row) 
+            	
+drawBotOuter:	li $t6, 0			# t6 <- 0 (col)
+drawBotInner:	sw $t1, 0($t0)			# t0 <- store color bgcol/2
+		addi $t0, $t0, 4	        # move offset 1 pixel right
+		addi $t6, $t6, 1	        # t0 <- t0 + 1  | counter for moving right
+		bne $t6, 48, drawBotInner   	# if t5 != 48 repeat drawBotInner else move on
+		addi $t0, $t0, 1856
+		addi $t5, $t5, 1	        # t6 <- t6 + 1
+		addi $t7, $t7, 1		# t7 <- t7 + 1 (height counter)
+		bne $t5, 32, drawBotOuter   	# if t6 != 32 repeat drawBotOuter else move on
+		
+		# add 1 on each side -> form a 45 degree angle
+drawSlant:	la $t0, frameBuffer		# t0 <- address of frameBuffer
+		
+		# color calculation bgcol / 2 
+		lw $t1, bgcol			# t2 <- bgcol
+		srl $t1, $t1, 1			# t2 <- bgcol / 2
+		
+		##--Calculating Offset---
+		# calculate next line of starting pixel half width - 24 (neck is 48 in width), 
+		#then add on position below neck 
+		lw $t2, width			# t2 <- width 
+           	sll $t2, $t2, 1			# t2 <- (t2 / 2) * 4  # width / 2 * 4 word 
+          	addi $t3, $zero, 24		# t3 <- 48/2 width of neck
+            	sll $t3, $t3, 2			# t3 <- 24 * 4 (offset)
+            	sub $t2, $t2, $t3		# t2 <- width/2 - offset (start of drawing)
+            	add $t0, $t0, $t2		# t0 <- frameBuffer[offset]
+            	add $t3, $zero, $t7		# t3 <- height counter
+            	sll $t3, $t3, 9			# t3 <- height counter * 512 -> height offset
+            	sll $t3, $t3, 2			# t3 <- height offset * 4 (word)
+            	add $t0, $t0, $t3		# t0 <- frameBuffer[offset + height offset]
+            	
+		# can use registers t2, t3, t4 
+		lw $t2, w			# t2 <- w (will be ending of loop) 
+		li $t3, 1860			# (512*4) - (48*4) + 4 -> next line from current position
+		li $t4, 46			# t4 <- 48 - 2 (start size)
+            	
+drawSlantOuter:	li $t6, 0			# t6 <- 0 (col) 
+		addi $t3, $t3, -8		# t3 <- offset - 8
+		addi $t4, $t4, 2		# t4 <- t4 + 2		
+		
+drawSlantInner:	sw $t1, 0($t0)			# t0 <- store color bgcol/2
+		addi $t0, $t0, 4	        # move offset 1 pixel right
+		addi $t6, $t6, 1	        # t0 <- t0 + 1  | counter for moving right
+		bne $t6, $t4, drawSlantInner   	# if t6 != t4 repeat drawSlantInner else move on
+		add $t0, $t0, $t3		# move onto next line
+		addi $t7, $t7, 1		# t7 <- t7 + 1 (height counter)
+		bne $t6, $t2, drawSlantOuter   	# if t5 != t2 repeat drawSlantOuter else move on
+		
+drawAbvLiq:	la $t0, frameBuffer		# t0 <- address of frameBuffer
+		
+		# color calculation bgcol / 2 
+		lw $t1, bgcol			# t2 <- bgcol
+		srl $t1, $t1, 1			# t2 <- bgcol / 2
+		
+		# calculate starting point, height + width/2 - 1/2(w)
+		lw $t2, width			# t2 <- width 
+           	sll $t2, $t2, 1			# t2 <- (t2 / 2) * 4  # width / 2 * 4 word 
+          	lw $t3, w			# t3 <- w
+            	sll $t3, $t3, 1			# t3 <- w * 2 (offset)
+            	sub $t2, $t2, $t3		# t2 <- width/2 - offset (start of drawing)
+            	add $t0, $t0, $t2		# t0 <- frameBuffer[offset]
+            	add $t3, $zero, $t7		# t3 <- height counter
+            	sll $t3, $t3, 9			# t3 <- height counter * 512 -> height offset
+            	sll $t3, $t3, 2			# t3 <- height offset * 4 (word)
+            	add $t0, $t0, $t3		# t0 <- frameBuffer[offset + height offset]
+            	li $t5, 0			# t5 <- 0 (row)	
+            	
+            	# calculate offset and set it as t3 [512*4 - w*4]
+            	lw $t2, width			# t2 <- width 
+            	sll $t2, $t2, 2			# t2 <- width * 4
+            	lw $t3, w			# t3 <- w
+            	sll $t3, $t3, 2			# t3 <- w * 4
+            	sub $t3, $t2, $t3		# t3 <- width*4 - w*4
+            	lw $t2, w			# t2 <- w
+            	lw $t4, h			# t4 <- h
+           
+drawAbvOuter:	li $t6, 0			# t6 <- 0 (col)
+
+drawAbvInner:	sw $t1, 0($t0)			# t0 <- stores bgcol/2
+		addi $t0, $t0, 4		# move offset 1 pixel right
+		addi $t6, $t6, 1		# t6 <- t6 + 1
+		bne $t6, $t2, drawAbvInner   	# if counter != w repeat drawAbvInner else move on
+		add $t0, $t0, $t3		# move onto next line
+		addi $t5, $t5, 1	        # t5 <- t6 + 1
+		addi $t7, $t7, 1		# t7 <- t7 + 1 (height counter)
+		bne $t5, $t4, drawAbvOuter   	# if row != height repeat drawAbvOuter else move on
+		
+drawLiquid:	la $t0, frameBuffer		# t0 <- address of frameBuffer
+		
+		# color calculation NEED TO FIX 
+		lw $t1, bgcol			# t2 <- bgcol
+		srl $t1, $t1, 2			# t2 <- bgcol / 2
+		
+		# calculate next line after top part before liquid, height * 512 * 4 + (width / 2 - offset)
+		lw $t2, width			# t2 <- width 
+           	sll $t2, $t2, 1			# t2 <- (t2 / 2) * 4  # width / 2 * 4 word 
+          	lw $t3, w			# t3 <- w
+            	sll $t3, $t3, 1			# t3 <- w * 2 (offset)
+            	sub $t2, $t2, $t3		# t2 <- width/2 - offset (start of drawing)
+            	add $t0, $t0, $t2		# t0 <- frameBuffer[offset]
+            	add $t3, $zero, $t7		# t3 <- height counter
+            	sll $t3, $t3, 9			# t3 <- height counter * 512 -> height offset
+            	sll $t3, $t3, 2			# t3 <- height offset * 4 (word)
+            	add $t0, $t0, $t3		# t0 <- frameBuffer[offset + height offset]
+            	li $t5, 0			# t5 <- 0 (row)	
+            	
+            	# calculate offset and set it as t3 [512*4 - w*4]
+            	# 
+            	lw $t2, width			# t2 <- width 
+            	sll $t2, $t2, 2			# t2 <- width * 4
+            	lw $t3, w			# t3 <- w
+            	sll $t3, $t3, 2			# t3 <- w * 2
+            	sub $t3, $t2, $t3		# t3 <- width*4 - w*4
+            	lw $t2, w			# t2 <- w
+            	lw $t4, l			# t4 <- l
+           
+drawLiqOuter:	li $t6, 0			# t6 <- 0 (col)
+
+drawLiqInner:	sw $t1, 0($t0)			# t0 <- stores color
+		addi $t0, $t0, 4		# move offset 1 pixel right
+		addi $t6, $t6, 1		# t6 <- t6 + 1
+		bne $t6, $t2, drawLiqInner   	# if counter != w repeat drawLiqInner else move on
+		add $t0, $t0, $t3		# move onto next line
+		addi $t5, $t5, 1	        # t5 <- t6 + 1
+		addi $t7, $t7, 1		# t7 <- t7 + 1 (height counter)
+		bne $t5, $t4, drawLiqOuter   	# if row != l repeat drawLiqOuter else move on
+		
 Exit:
-li $v0,10 			# exit code
-syscall 			# exit to OS
+		li $v0,10 # exit code
+		syscall # exit to OS
