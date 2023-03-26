@@ -2,7 +2,7 @@
 # DONOTMODIFYTHISLINE
 frameBuffer: .space 0x80000 # 512 wide X 256 high pixels
 w: .word 80
-h: .word 40  
+h: .word 40
 l: .word 60
 bgcol: .word 0x00E2CD9F
 # DONOTMODIFYTHISLINE
@@ -291,7 +291,7 @@ drawLiquid:	la $t0, frameBuffer		# t0 <- address of frameBuffer
            
 drawLiqCol:	li $t6, 0			# t6 <- 0 (col)
 drawLiqRow:	sw $t1, 0($t0)			# t0 <- stores color
-		addi $t0, $t0, 4		# move offset 1 pixel right
+		addi $t0, $t0, 4		# move 1 pixel right
 		addi $t6, $t6, 1		# t6 <- t6 + 1
 		bne $t6, $t2, drawLiqRow   	# if counter != w repeat drawLiqInner else move on
 		add $t0, $t0, $t3		# move onto next line
